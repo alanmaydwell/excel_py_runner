@@ -1,0 +1,10 @@
+# Log files
+*.log
+
+# Compiled python files
+*.pyc
+
+#JetBrains IDE files
+.idea/
+
+
