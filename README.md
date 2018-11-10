@@ -1,8 +1,12 @@
 # excel_py_runner.py
 
-Executes sequence of python functions, with optional arguments, read from a specially formatted spreadsheet.
+Executes sequence of python functions, with optional arguments,
+read from a specially formatted Excel spreadsheet.
+Uses openpyxl for spreadsheet access.
 
 Values returned from each function are written back to the spreadsheet.
+
+Can also apply simple conditional highlighting to the results
 
 At end of run a new "results" copy of the spreadsheet is saved to the results sub-directory. Filename is automatic and contains time & date.
 

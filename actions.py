@@ -8,6 +8,7 @@ import subprocess
 import requests
 from selenium import webdriver
 
+# Dictionary intended to be used to share data between functions
 share = {}
 
 def add(a, b):
@@ -29,6 +30,7 @@ def fibonacci(iters=10):
 
 def ping(url):
     """Ping website once using subprocess module and ping"""
+    # -c flag might not be valid on Windows
     return subprocess.check_output(["ping", "-c", "1", url])
 
 def url_status_code(url):
@@ -43,3 +45,11 @@ def selenium_get_website_headings(url, tag='h4'):
     headlines = [e.text for e in driver.find_elements_by_tag_name(tag)]
     driver.close()
     return ", ".join(headlines)
+    
+# Example of two functions that share data
+def read_file(filename, share_key="data_file"):
+    with open(filename, "r") as infile:
+        share[share_key] = infile.read()
+    
+def count_occurs(item="*", share_key="data_file"):
+    return share.get(share_key,"").count(item)

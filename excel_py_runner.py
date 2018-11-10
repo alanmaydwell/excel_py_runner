@@ -23,6 +23,22 @@ class Excel(object):
         """
         self.filename = filename
         self.wb = openpyxl.load_workbook(filename=filename)
+        self.fills = {}
+        self.define_styles()
+        
+    def define_styles(self):
+        """Define some background colours and store in self.fills"""
+        colours = [("red", "FFFF3333"),
+                   ("orange", "FFFF8000"),
+                   ("yellow", "50FFFF00"),
+                   ("green", "FFB2FF66"),
+                   ("purple", "FFCC00CC")
+                   ]
+        for col in colours:
+            self.fills[col[0]] = openpyxl.styles.PatternFill(
+                       start_color=col[1],
+                       end_color=col[1],
+                       fill_type='solid')
 
     def run_tab(self, tabname="Activities"):
         """Process sequence of actions from the specified spreadsheet tab
@@ -58,19 +74,58 @@ class Excel(object):
             ws.cell(row=row, column=columns["Runtime"]).value = now
 
             # Try to execute the action
+            execution_failed = False
             try:
                 if args:
                     result = getattr(actions, action)(*args)
                 else:
                     result = getattr(actions, action)()
             except Exception as err:
+                execution_failed = True
                 result = "Error - row {}, action '{}': {}".format(row, action, str(err))
 
             # Write outcome to spreadsheet
             ws.cell(row=row, column=columns["Result"]).value = result
+
+            # Result backgound colour highlighting
+            if execution_failed:
+                colour = "orange"
+            # Apply conditional colour highlighting if condition set
+            else:
+                colour = ""# default empty colour
+                
+                condition = ws.cell(row=row, column=columns["Condition"]).value
+                if condition:
+                    colour = self.condition_check(result, condition)
+            if colour:
+               ws.cell(row=row, column=columns["Result"]).fill = self.fills[colour]
+                
         #Save spreadsheet
         new_filename = self.save_results()
         print "Saved:", new_filename
+
+    def condition_check(self, result, condition):
+        """Apply conditional highlight check to result and return
+        related background colour depending on the outcome.
+        Args:
+            result - the result value of a check
+            condition - string containing conditional expresion that
+            evaluates result in some way, e.g. "result == 5" or
+            "'fail' not in result"
+        Returns:
+            colour name (needs to correspond to key in self.fills)
+        """
+        r = result # alias for convenience in condition
+        try:
+            check =  eval(condition)    
+        except Exception as err:
+            check = None
+            print "Evaluation failed:", condition, err
+            
+        # Map outcomes to colours
+        outcome_map = {True:"green", False: "red", None: "purple"}
+        colour = outcome_map.get(check, None)       
+        return colour
 
     def save_results(self):
         """Save results as new spreadsheet in results folder"""
@@ -78,15 +133,10 @@ class Excel(object):
         #Create the folder if it doesn't exist
         if not os.path.exists(results_folder):
             os.makedirs(results_folder)
-
-        # Add coloured stripe
-        fill = openpyxl.styles.PatternFill(start_color='50FFFF00',
-                                           end_color='50888800',
-                                           fill_type='solid')
+        #Add yellow stripe to top row to make easier to distinguish for master Excel file
         for ws in self.wb.worksheets:
             for column in range(1, 18):
-                ws.cell(row=1, column=column).fill = fill
-
+                ws.cell(row=1, column=column).fill = self.fills["yellow"]
         #Save the results
         result_filename = (os.path.splitext(self.filename)[0]
                            + time.strftime("_results_[%Y.%m.%d_%H.%M.%S].xlsx"))
